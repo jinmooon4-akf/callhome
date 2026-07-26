@@ -29,6 +29,20 @@ English | [简体中文](README_zh.md)
 - **Call records & one-line summaries** — every call leaves a trace worth keeping
 - **Bedtime radio** — "read me something" → they read from the page your bookmark sleeps on
 
+## Screenshots
+
+Real screens, not mockups — annotations in Chinese, but the interfaces speak for themselves.
+
+**Incoming call.** The banner at the top is one ring; the card is what opens when you tap it. Dark, light, and with quick-decline chips.
+
+![Incoming call on iOS](docs/images/incoming-call.jpg)
+
+**In call.** Live captions with the emotion tag and tone cues attached to what you just said, and the settings sheet: background, frosted overlay, warm/cool tint, per-person avatars.
+
+![In-call screen and settings](docs/images/in-call.jpg)
+
+![Call screens in warm and cool themes, and with a custom photo background](docs/images/themes.jpg)
+
 ## Architecture
 
 ```
