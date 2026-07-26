@@ -10,7 +10,7 @@ There is no ringtone, no loop, no sustained alert. Everything below is about get
 close to *a phone ringing* as that primitive allows — and about the six ways iOS will
 quietly not do what the spec says it should.
 
-Measured on iOS 18 / Safari PWA / `web.push.apple.com`, July 2026.
+Measured on iOS 18 / Safari PWA / `web.push.apple.com`, July 2026. Numbers in this document are what one couple settled on — the platform limits are facts, the cadence is a taste. See [Reference parameters](#reference-parameters).
 
 ![Incoming call on iOS: push banner, then the ringing card — dark, light, and with quick-decline](images/incoming-call.jpg)
 
@@ -247,6 +247,25 @@ can guess for them.
 
 `2s × 10` rings for 20 seconds and expires at 30 — close to how long a real handset rings
 before voicemail.
+
+**These are one couple's answers, not derived values.** Ours started at `5s × 10` and moved
+to `2s × 10` for one reason: a single buzz every five seconds reads as *notifications*, and
+every two seconds reads as *someone calling*. That is a feeling, and feelings are not
+portable. Yours will land somewhere else:
+
+- **Ring faster** if the buzz has to cut through something — work, a lecture, deep sleep
+- **Ring fewer times** if the stack in Notification Center bothers you more than the silence
+  does. Fewer rings spaced further apart is a completely reasonable answer; it just isn't ours
+- **Ring longer** if your person puts the phone down a lot
+- **Turn the burst off** (`ring_enabled: false`) for one ring and then patience
+
+Put the knobs on a settings screen, not in a file you have to SSH in to edit. The number
+that feels right in the first week is usually not the number that feels right in the second,
+and a knob nobody can reach is a knob nobody turns. Ask the person being called what they
+want — how hard someone wants to be chased is a question with an owner.
+
+Same principle as [Tuning](PROTOCOL.md#tuning--reference-values-not-rules) in the protocol
+doc, and the numbers here belong in that table.
 
 ---
 
