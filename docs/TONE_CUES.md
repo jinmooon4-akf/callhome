@@ -132,12 +132,11 @@ Find the voiced span by thresholding RMS at 15% of its peak, then measure inside
 ## What about sending the audio to a multimodal model?
 
 You can. A model that actually listens will out-describe anything in this
-document — not *声音比平时轻* but:
-
-> 声音甜美，在"心里"后有轻微停顿，咬字清晰，音量适中，语调在句尾略微上扬，带有明显的笑意
-
-That is a different league, and we are not going to pretend otherwise. Gemini,
-GPT-4o audio and similar will all do this.
+document. Where this module says *声音比平时轻*, a multimodal model can name the
+specific thing it heard — which word the hesitation came before, how the last
+syllable was shaped, whether there was a smile in it. That is a different league
+and we are not going to pretend otherwise; Gemini, GPT-4o audio and similar all
+do it.
 
 We have not implemented it here, for one reason:
 
