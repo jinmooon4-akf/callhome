@@ -4,3 +4,4 @@ Extracted, annotated reference implementations of the marker-parsing layer (Node
 
 - `markers.js` — dial / hangup / dnd parsing on the finalized reply text
 - `escalation.js` — the silence→call decision block, with its guardrails
+- `ring-burst.py` — the timed push sequence that makes a phone keep ringing, with drift-free scheduling and its stop conditions (see [`docs/IOS_PUSH_RINGING.md`](../docs/IOS_PUSH_RINGING.md))

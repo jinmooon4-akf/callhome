@@ -18,10 +18,14 @@ Parse defensively: accept `⟪⟫`, `《》`, `【】`, `[]` as delimiters — m
 
 `POST /api/call/invite` `{ reason }` →
 - checks DND (`403`-style `{ok:false, dnd:true}` if on, unless `force`)
-- inserts a `pending` invite with a 90s expiry
-- fires a push notification
+- inserts a `pending` invite with a configurable expiry (reference: 30s)
+- fires the first push, then starts the ring burst
 
-Client polls `GET /api/call/invite` (~8s; also immediately after each reply finishes). A `pending` invite renders the ringing card.
+**Ringing is a burst, not a push.** On iOS one push is one buzz — no ringtone, no sustained alert — so a phone that *keeps* ringing has to be simulated by a timed sequence of pushes (reference: every 2s, ten extra rings, ~20s of ringing, `·last ring` on the final one). The burst stops the moment the invite is no longer `pending`, and again at `expires_at`. When the call resolves, every notification it produced is closed at once: iOS does not collapse them by `tag`, so cleanup is the client's job, not the platform's.
+
+Full write-up, including the six places WebKit diverges from the spec and the measurements behind each number: [`IOS_PUSH_RINGING.md`](IOS_PUSH_RINGING.md). Reference implementations in [`gateway-reference/ring-burst.py`](../gateway-reference/ring-burst.py) and [`pwa-reference/`](../pwa-reference/).
+
+Client polls `GET /api/call/invite` (~8s; also immediately after each reply finishes, and immediately when the service worker forwards a call push). A `pending` invite renders the ringing card; the response carries `expires_at` so the card dismisses on the server's real deadline rather than a constant baked into the client.
 
 **Expiry → voicemail.** On the poll that discovers expiry, the server writes a message into the pinned chat session:
 
@@ -81,8 +85,10 @@ Every number below is one couple's answer, shipped as a default. **Decide yours 
 | Escalation: silence threshold | 5h | escalation loop |
 | Escalation: allowed hours | 12:00–23:00 local | escalation loop |
 | Escalation: max per day | 1 | escalation loop |
-| Ring timeout → voicemail | 90s | invite `expires_at` |
-| Invite poll interval | 8s (+immediate after each reply) | client |
+| Ring timeout → voicemail | 30s | invite `expires_at` |
+| Ring interval | 2s | ring burst — floor is ~2s, below that APNs coalesces |
+| Extra rings after the first | 10 | ring burst — ~20s of ringing |
+| Invite poll interval | 8s (+immediate after each reply, +on service-worker push) | client |
 | Soft-voice TTS volume | 0.5× | client gain node |
 | Hangup linger window | 15–20s | hangup handler |
 | Min call length for a record | 5s | hangup handler |
