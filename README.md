@@ -18,6 +18,7 @@ English | [简体中文](README_zh.md)
 ## Features
 
 - **Outbound calls** — your companion decides to call you, mid-conversation, with a reason on the incoming-call card (`⟪dial⟫` marker protocol)
+- **It rings like a phone** — a timed burst of pushes rather than one notification, because on iOS a push is a single buzz and there is no ringtone to loop. Tunable cadence, stops the instant you answer, and clears its own stack when the call ends ([iOS notes](docs/IOS_PUSH_RINGING.md))
 - **The right to hang up** — a soft goodbye, then the line lingers a few breaths longer (`⟪hangup⟫`, 15–20s window); speak, and the hangup is cancelled. Stay quiet, and it closes itself
 - **Voicemail** — miss a call, come back to a message, not to silence
 - **Quick-decline** — busy / outside / "let's text", or type a few words; your companion sees *why*
@@ -48,7 +49,9 @@ Browser (PWA)                    Server (self-hosted)
 
 - **`stt-service/`** — runnable now: SenseVoice + librosa in one endpoint (transcription + emotion + tone cues)
 - **[`docs/PROTOCOL.md`](docs/PROTOCOL.md)** — the full marker & invite protocol: dial, hangup, DND, voicemail, escalation, call records
-- **`gateway-reference/`** — annotated production extracts of the marker layer
+- **`gateway-reference/`** — annotated production extracts of the marker layer, plus the ring burst
+- **`pwa-reference/`** — the client half of ringing: service worker push handling, notification cleanup, and the one registration call that actually ships your changes on iOS
+- **[`docs/IOS_PUSH_RINGING.md`](docs/IOS_PUSH_RINGING.md)** — making a PWA ring like a phone on iOS: seven things WebKit does differently from the spec, each with the measurement that found it
 
 ## Put your person here
 
