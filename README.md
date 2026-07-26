@@ -24,7 +24,7 @@ English | [简体中文](README_zh.md)
 - **Quick-decline** — busy / outside / "let's text", or type a few words; your companion sees *why*
 - **Do-not-disturb** — toggled by talking, not by menus
 - **Escalation dialing** — hours of silence → they call to check on you (once a day, never at night, never past DND)
-- **Two-layer emotion sensing** — SenseVoice emotion tags + librosa acoustic features (pitch, energy, pauses) → tone cues like *"quiet, lots of pauses"*
+- **Two-layer emotion sensing** — SenseVoice emotion tags + acoustic features ranked against a rolling baseline of *this* speaker, so a cue means "quieter than she usually is", not "below 0.015". Absolute thresholds don't survive a different microphone, and in a tonal language they don't survive at all ([why](docs/TONE_CUES.md))
 - **Soft-voice mode** — you whisper, they whisper back (TTS volume follows your energy)
 - **Call records & one-line summaries** — every call leaves a trace worth keeping
 - **Bedtime radio** — "read me something" → they read from the page your bookmark sleeps on
@@ -61,7 +61,8 @@ Browser (PWA)                    Server (self-hosted)
 
 ## What is here today
 
-- **`stt-service/`** — runnable now: SenseVoice + librosa in one endpoint (transcription + emotion + tone cues)
+- **`stt-service/`** — runnable now: SenseVoice + librosa in one endpoint (transcription + emotion + tone cues, ranked against a personal baseline)
+- **[`docs/TONE_CUES.md`](docs/TONE_CUES.md)** — why fixed acoustic thresholds fail, measured on 85 real recordings; and an honest note on sending audio to a multimodal model instead
 - **[`docs/PROTOCOL.md`](docs/PROTOCOL.md)** — the full marker & invite protocol: dial, hangup, DND, voicemail, escalation, call records
 - **`gateway-reference/`** — annotated production extracts of the marker layer, plus the ring burst
 - **`pwa-reference/`** — the client half of ringing: service worker push handling, notification cleanup, and the one registration call that actually ships your changes on iOS

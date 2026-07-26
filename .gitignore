@@ -5,3 +5,5 @@ __pycache__/
 uploads/
 *.bak*
 secrets*
+# a statistical fingerprint of one voice — keep it where it was made
+baseline.json
