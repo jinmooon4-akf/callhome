@@ -6,6 +6,8 @@ from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
+import tone      # tone cues from a rolling personal baseline, not fixed constants
+
 BASE = Path(__file__).parent.resolve()
 UPLOADS = BASE / "uploads"
 UPLOADS.mkdir(exist_ok=True)
@@ -39,9 +41,19 @@ def transcribe(p: Path):
         traceback.print_exc()
         return {"text":"", "emotion":"neutral", "error":str(e)}
 
-def _features(p: Path):
-    """librosa声学特征 → 中文语气线索（借鉴 hervoice，本地计算，不出岛）"""
-    import subprocess, tempfile, os
+def _features(p: Path, text: str = ""):
+    """Acoustic features only. The wording is tone.py's job — it ranks each
+    feature against a rolling baseline of this speaker instead of a constant.
+
+    Measured on 85 real recordings from one speaker: `pitch_var > 60` held in
+    96.5% of them (Mandarin tone, not emotion), the `pause` cutoff landed on her
+    median, and two of the seven phrases needed a pitch she never reaches. See
+    docs/TONE_CUES.md.
+
+    If you change the yin frame_length/hop_length, existing baselines are no
+    longer comparable — pitch and pitch_var shift, and every percentile with them.
+    """
+    import subprocess, tempfile, os, re as _re
     import numpy as np, librosa
     try:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
@@ -51,27 +63,47 @@ def _features(p: Path):
         y, sr = librosa.load(wav, sr=16000, mono=True)
         os.unlink(wav)
         dur = len(y)/sr
-        if dur < 0.6: return {}, ""
-        f0 = librosa.yin(y, fmin=60, fmax=500, sr=sr)
+        if dur < 0.6: return {}
+        f0 = librosa.yin(y, fmin=60, fmax=500, sr=sr, frame_length=1024, hop_length=512)
         f0v = f0[(f0>60)&(f0<500)]
         rms = librosa.feature.rms(y=y)[0]
         pause = float(np.mean(rms < np.percentile(rms,20)*1.5))
+
         feats = {"dur": round(dur,1),
                  "pitch": round(float(np.mean(f0v)),1) if len(f0v) else 0,
                  "pitch_var": round(float(np.std(f0v)),1) if len(f0v) else 0,
                  "energy": round(float(np.mean(rms)),4),
                  "pause": round(pause,2)}
-        hints = []
-        if feats["energy"] < 0.015 and pause > 0.4: hints.append("声音低停顿多")
-        elif feats["energy"] < 0.015: hints.append("声音很轻")
-        elif pause > 0.44: hints.append("说得断断续续")
-        if not hints and feats["pitch_var"] > 80 and dur > 2: hints.append("语调起伏大")
-        if feats["pitch"] > 260 and feats["pitch_var"] > 55: hints.append("音调高很激动")
-        elif feats["pitch"] > 250 and dur < 2.5: hints.append("尾音上扬")
-        if feats["energy"] > 0.06 and feats["pitch_var"] > 60: hints.append("嗓门大情绪冲")
-        return feats, "、".join(hints[:2])
+
+        # Voiced span. Recordings usually carry a second or two of trailing
+        # silence, and measuring the tail across the whole clip measures that
+        # silence: the first version of this returned ~0.0 every time and
+        # captioned every clip "trailed off".
+        lo = hi = None
+        if len(rms) >= 8:
+            thr = float(np.max(rms)) * 0.15
+            idx = np.where(rms > thr)[0]
+            if len(idx) >= 6:
+                lo, hi = int(idx[0]), int(idx[-1])
+        voiced_dur = (hi - lo + 1) / len(rms) * dur if (lo is not None and hi > lo) else dur
+
+        # Speaking rate, from the transcript we already have. No extra model, and
+        # unlike energy it owes nothing to mic gain or distance.
+        chars = len(_re.sub(r"[\s，。、！？；：…,.!?;:~\-—\"\'（）()]+", "", text or ""))
+        if chars and voiced_dur > 0.3:
+            feats["rate"] = round(chars/voiced_dur, 2)
+
+        # Ending energy vs the middle: running out of breath, or leaning in.
+        if lo is not None and hi - lo >= 7:
+            seg = rms[lo:hi+1]
+            mid = seg[len(seg)//4 : len(seg)*3//4]
+            end = seg[len(seg)*3//4 :]
+            if len(mid) and len(end) and float(np.mean(mid)) > 1e-6:
+                feats["tail"] = round(float(np.mean(end))/float(np.mean(mid)), 2)
+
+        return feats
     except Exception:
-        return {}, ""
+        return {}
 
 def parse_multipart(body: bytes, ctype: str):
     boundary = None
@@ -124,9 +156,14 @@ class H(BaseHTTPRequestHandler):
             dest.write_bytes(ab)
             t0 = time.time()
             r = transcribe(dest)
-            feats, tone = _features(dest)
+            feats = _features(dest, r.get("text", ""))
+            # describe before remember — a clip must not be ranked against a
+            # distribution that already contains it
+            tone_str, tone_dbg = tone.describe(feats)
+            tone.remember(feats)
             r["features"] = feats
-            r["tone"] = tone
+            r["tone"] = tone_str
+            r["tone_debug"] = tone_dbg
             r["elapsed_s"] = round(time.time()-t0, 2)
             r["filename"] = dest.name
             print(f"[stt] {dest.name} -> {r.get('emotion')} tone={r.get('tone','')} ({r['elapsed_s']}s)", flush=True)
